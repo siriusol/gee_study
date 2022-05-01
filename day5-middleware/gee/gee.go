@@ -3,15 +3,17 @@ package gee
 import (
 	"log"
 	"net/http"
+	"strings"
 )
 
 // HandlerFunc defines the request handler used by gee
 type HandlerFunc func(*Context)
 
 type RouterGroup struct {
-	prefix string
-	parent *RouterGroup // support nesting
-	engine *Engine      // all groups share an Engine instance
+	prefix      string
+	middlewares []HandlerFunc // support middleware
+	parent      *RouterGroup  // support nesting
+	engine      *Engine       // all groups share an Engine instance
 }
 
 type Engine struct {
@@ -54,8 +56,20 @@ func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
 	group.addRoute("POST", pattern, handler)
 }
 
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, middlewares...)
+}
+
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var middlewares []HandlerFunc
+	for _, group := range engine.groups {
+		if strings.HasPrefix(req.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
+
 	c := newContext(w, req)
+	c.handlers = middlewares
 	engine.router.handle(c)
 }
 
