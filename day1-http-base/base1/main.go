@@ -16,6 +16,7 @@ func indexHandler(w http.ResponseWriter, req *http.Request) {
 // todo pr: fix r.URL.Header to r.Header
 func helloHandler(w http.ResponseWriter, req *http.Request) {
 	for k, v := range req.Header {
+		fmt.Fprintf(w, "Header[%s]=%s\n", k, v)
 		fmt.Fprintf(w, "Header[%q]=%q\n", k, v)
 	}
 }
